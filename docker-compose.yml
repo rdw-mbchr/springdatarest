@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+
+  # ===== PostgreSQL =====
+  postgres:
+    container_name: postgresdb
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: springboot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - spring-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== Ollama (IA) =====
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - spring-net
+
+  # ===== Spring Boot =====
+  springboot-app:
+    container_name: springboot-app
+    image: springboot-app
+    restart: always
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresdb:5432/springboot
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - spring-net
+
+  # ===== React Frontend =====
+  react-app:
+    container_name: react-app
+    build:
+      context: ./src/main/webapp/reactjs
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8081
+    networks:
+      - spring-net
+    depends_on:
+      - springboot-app
+
+networks:
+  spring-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  ollama_data:
