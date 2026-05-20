@@ -69,5 +69,3 @@ docker-compose down
 
 ---
 
-### Contact
-Projet partagé avec : knafil@yahoo.fr
