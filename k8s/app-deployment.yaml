@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voiture-app-deployment
+spec:
+  selector:
+    matchLabels:
+      app: voiture-k8s
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: voiture-k8s
+    spec:
+      containers:
+        - name: voiture-app
+          image: springdatarest:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: host
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: dbName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: password
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/springboot"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "admin"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+            - name: SPRING_AI_OLLAMA_BASE_URL
+              value: "http://host.minikube.internal:11434"
+            - name: GOOGLE_CLIENT_ID
+              value: "votre-google-client-id"
+            - name: GOOGLE_CLIENT_SECRET
+              value: "votre-google-client-secret"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voiture-app-svc
+spec:
+  selector:
+    app: voiture-k8s
+  ports:
+    - protocol: "TCP"
+      port: 8081
+      targetPort: 8081
+  type: NodePort
